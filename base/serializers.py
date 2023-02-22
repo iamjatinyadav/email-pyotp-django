@@ -1,3 +1,5 @@
+import base64
+
 from rest_framework import serializers
 
 from django.contrib.auth import get_user_model
@@ -13,7 +15,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["email", "password", "password2", "is_verified"]
-        extra_kwargs = {'password': {'write_only': True}}
+        # extra_kwargs = {'password': {'write_only': True}}
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
@@ -22,16 +24,40 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         email = validated_data['email']
-
-        # verified = validated_data['is_verified']
-        # print(email)
+        user = User.objects.create(email=email,)
+        user.set_password(validated_data['password'])
         generate_otp(email)
-        return {'email': email}
-
-
-
+        user.save()
+        return user
 
 
 class VerifyAccountSerializer(serializers.Serializer):
     email = serializers.EmailField()
     otp = serializers.CharField()
+
+    class Meta:
+        model = User
+        fields = ['email', 'otp']
+
+    def validate(self, attrs):
+        val = generate_verify_otp(attrs['email'])
+        # token = val['token']
+        # secret = base64.b32decode(token)
+        # get_email = secret.decode()
+
+        get_otp = val['OTP']
+        user = User.objects.filter(email = attrs['email']).exists()
+        if not user:
+            raise serializers.ValidationError({"email": "User not register"})
+
+        if get_otp != attrs['otp']:
+            raise serializers.ValidationError({'otp': "Wrong Otp"})
+
+        return attrs
+
+    # def update(self, validated_data):
+    #     email = validated_data["email"]
+    #     user = User.objects.filter()
+
+
+

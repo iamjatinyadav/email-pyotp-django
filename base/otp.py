@@ -1,12 +1,15 @@
 import pyotp
 import base64
+from .email import *
 
 
 def generate_otp(user):
-
-    # abcd = pyotp.random_base32(100)
-    # print(abcd)
     token = base64.b32encode(user.encode())
     otp = pyotp.TOTP(token, interval=600)
-    print(token, otp.now())
-    return {'secret': token, 'OTP': otp.now()}
+    send_otp_via_mail(user, otp.now())
+
+
+def generate_verify_otp(user):
+    token = base64.b32encode(user.encode())
+    otp = pyotp.TOTP(token, interval=600)
+    return {'token': token, 'OTP': otp.now()}
